@@ -55,13 +55,12 @@ resource "aws_subnet" "public" {
 }
 
 
-resource "aws_lb" "test" {
-  name               = "test-lb-tf"
+resource "aws_lb" "nc-lb" {
+  name               = "nc-lb"
   internal           = false
   load_balancer_type = "application"
-  security_groups    = [aws_security_group.allow_http.id]
+  security_groups    = [aws_security_group.allow_http_sg.id]
   subnets            = [aws_subnet.public.id]
-
   enable_deletion_protection = false
 
   # access_logs {
@@ -70,8 +69,23 @@ resource "aws_lb" "test" {
   #   enabled = true
   # }
 
-  tags = {
-    Environment = "production"
+  # tags = {
+  #   Environment = "production"
+  # }
+}
+
+resource "aws_lb_listener" "nc-lb-listener" {
+  load_balancer_arn = aws_lb.nc-lb.arn
+  port = "80"
+  protocol = "HTTP"
+  default_action {
+    type = "fixed-response"
+
+    fixed_response {
+      content_type = "text/plain"
+      message_body = "Fixed response content"
+      status_code  = "200"
+    }
   }
 }
 
