@@ -17,7 +17,6 @@ provider "aws" {
 
 # resource "aws_eip" "ip" {
 #   vpc      = true
-#   instance = aws_instance.example.id
 # }
 
 # output "ip" {
@@ -46,21 +45,38 @@ resource "aws_vpc" "nc-vpc" {
 }
 
 resource "aws_subnet" "public" {
-  vpc_id     = aws_vpc.main.id
+  vpc_id     = aws_vpc.nc-vpc.id
   cidr_block = "10.0.1.0/24"
+  availability_zone  = "eu-west-2a"
 
   tags = {
     Name = "nextcloud-public-subnet"
   }
 }
 
+resource "aws_subnet" "public2" {
+  vpc_id     = aws_vpc.nc-vpc.id
+  cidr_block = "10.0.2.0/24"
+  availability_zone  = "eu-west-2b"
+
+  tags = {
+    Name = "nextcloud-public-subnet"
+  }
+}
+
+resource "aws_internet_gateway" "gw" {
+  vpc_id = aws_vpc.nc-vpc.id
+  tags = {
+    Name = "nc igw"
+  }
+}
 
 resource "aws_lb" "nc-lb" {
   name               = "nc-lb"
   internal           = false
   load_balancer_type = "application"
-  security_groups    = [aws_security_group.allow_http_sg.id]
-  subnets            = [aws_subnet.public.id]
+  security_groups    = [aws_security_group.allow_http.id]
+  subnets            = [aws_subnet.public.id, aws_subnet.public2.id]
   enable_deletion_protection = false
 
   # access_logs {
@@ -89,13 +105,13 @@ resource "aws_lb_listener" "nc-lb-listener" {
   }
 }
 
-resource "aws_instance" "example" {
+# resource "aws_instance" "example" {
 
-  ami           = "ami-06178cf087598769c"
-  instance_type = "t2.micro"
-  subnet_id     = aws_subnet.private.id
-  vpc_security_group_ids = [aws_security_group.allow_http.id]
-}
+#   ami           = "ami-06178cf087598769c"
+#   instance_type = "t2.micro"
+#   subnet_id     = aws_subnet.private.id
+#   vpc_security_group_ids = [aws_security_group.allow_http.id]
+# }
 
 
 resource "aws_security_group" "allow_http" {
@@ -108,7 +124,7 @@ resource "aws_security_group" "allow_http" {
     from_port   = 80
     to_port     = 80
     protocol    = "tcp"
-    cidr_blocks = [aws_vpc.nc-vpc.cidr_block]
+    cidr_blocks = ["0.0.0.0/0"]
   }
 
   egress {
